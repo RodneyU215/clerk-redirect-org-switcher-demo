@@ -1,8 +1,10 @@
 import {
   OrganizationProfile,
-  OrganizationSwitcher,
   SignOutButton,
+  useOrganizationList,
+  useAuth,
 } from '@clerk/nextjs';
+import { useEffect } from 'react';
 
 export const clearCookie = (name: string): void => {
   document.cookie = `${name}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;`;
@@ -20,6 +22,25 @@ export const clearAllCookies = (): void => {
 };
 
 export default function Home() {
+  const { orgId } = useAuth();
+  const hasActiveOrg = orgId !== null;
+  const { isLoaded, setActive, userMemberships } =
+    useOrganizationList({
+      userMemberships: {
+        infinite: true,
+      },
+    });
+
+  useEffect(() => {
+    if (!isLoaded || !userMemberships.data.length || hasActiveOrg) {
+      return;
+    }
+    // Once the data is loaded, set the active organization to the first organization in the list.
+    setActive({
+      organization: userMemberships.data[0].organization.id,
+    });
+  }, [isLoaded, userMemberships.data, hasActiveOrg, setActive]);
+
   const handleSignOut = async () => {
     localStorage.removeItem('custom-token');
     clearAllCookies();
@@ -32,7 +53,7 @@ export default function Home() {
           Sign out
         </SignOutButton>{' '}
       </header>
-      <OrganizationSwitcher />
+      <OrganizationProfile />
       <div>Your page&apos;s content can go here.</div>
     </>
   );
